@@ -9,7 +9,129 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      analysis_logs: {
+        Row: {
+          ai_model_version: string | null
+          analysis_result: string
+          analysis_timestamp: string
+          confidence_score: number
+          detected_keywords: string[] | null
+          id: string
+          processing_time_ms: number | null
+          url: string
+        }
+        Insert: {
+          ai_model_version?: string | null
+          analysis_result: string
+          analysis_timestamp?: string
+          confidence_score: number
+          detected_keywords?: string[] | null
+          id?: string
+          processing_time_ms?: number | null
+          url: string
+        }
+        Update: {
+          ai_model_version?: string | null
+          analysis_result?: string
+          analysis_timestamp?: string
+          confidence_score?: number
+          detected_keywords?: string[] | null
+          id?: string
+          processing_time_ms?: number | null
+          url?: string
+        }
+        Relationships: []
+      }
+      blocked_sites: {
+        Row: {
+          analysis_details: Json | null
+          blocked_at: string
+          confidence_score: number
+          detected_content: string[] | null
+          id: string
+          site_type: string
+          url: string
+        }
+        Insert: {
+          analysis_details?: Json | null
+          blocked_at?: string
+          confidence_score: number
+          detected_content?: string[] | null
+          id?: string
+          site_type: string
+          url: string
+        }
+        Update: {
+          analysis_details?: Json | null
+          blocked_at?: string
+          confidence_score?: number
+          detected_content?: string[] | null
+          id?: string
+          site_type?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      high_alert_profiles: {
+        Row: {
+          added_at: string
+          added_by_admin: boolean | null
+          id: string
+          notes: string | null
+          site_type: string
+          url: string
+        }
+        Insert: {
+          added_at?: string
+          added_by_admin?: boolean | null
+          id?: string
+          notes?: string | null
+          site_type: string
+          url: string
+        }
+        Update: {
+          added_at?: string
+          added_by_admin?: boolean | null
+          id?: string
+          notes?: string | null
+          site_type?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      waiting_list: {
+        Row: {
+          added_at: string
+          analysis_details: Json | null
+          confidence_score: number
+          detected_content: string[] | null
+          id: string
+          reviewed: boolean | null
+          site_type: string
+          url: string
+        }
+        Insert: {
+          added_at?: string
+          analysis_details?: Json | null
+          confidence_score: number
+          detected_content?: string[] | null
+          id?: string
+          reviewed?: boolean | null
+          site_type: string
+          url: string
+        }
+        Update: {
+          added_at?: string
+          analysis_details?: Json | null
+          confidence_score?: number
+          detected_content?: string[] | null
+          id?: string
+          reviewed?: boolean | null
+          site_type?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

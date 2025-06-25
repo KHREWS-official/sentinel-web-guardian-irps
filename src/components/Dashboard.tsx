@@ -11,8 +11,10 @@ import { Shield, AlertTriangle, Eye, Search, Bot, Settings } from 'lucide-react'
 import BlackHoleAnimation from './BlackHoleAnimation';
 import AdminPanel from './AdminPanel';
 import IRPSAIChat from './IRPSAIChat';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AnalysisResult {
+  id: string;
   url: string;
   status: 'blocked' | 'waiting' | 'safe';
   confidence: number;
@@ -30,7 +32,64 @@ const Dashboard = () => {
   const [showChat, setShowChat] = useState(false);
   const { toast } = useToast();
 
-  // Simulated AI analysis
+  // Load initial data
+  useEffect(() => {
+    loadBlockedSites();
+    loadWaitingList();
+  }, []);
+
+  const loadBlockedSites = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('blocked_sites')
+        .select('*')
+        .order('blocked_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const formattedData = data.map(site => ({
+        id: site.id,
+        url: site.url,
+        status: 'blocked' as const,
+        confidence: Number(site.confidence_score),
+        detectedContent: site.detected_content || [],
+        timestamp: new Date(site.blocked_at).toLocaleString()
+      }));
+
+      setBlockedSites(formattedData);
+    } catch (error) {
+      console.error('Error loading blocked sites:', error);
+    }
+  };
+
+  const loadWaitingList = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('waiting_list')
+        .select('*')
+        .eq('reviewed', false)
+        .order('added_at', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      const formattedData = data.map(site => ({
+        id: site.id,
+        url: site.url,
+        status: 'waiting' as const,
+        confidence: Number(site.confidence_score),
+        detectedContent: site.detected_content || [],
+        timestamp: new Date(site.added_at).toLocaleString()
+      }));
+
+      setWaitingList(formattedData);
+    } catch (error) {
+      console.error('Error loading waiting list:', error);
+    }
+  };
+
+  // Enhanced AI analysis with database storage
   const analyzeContent = async (inputUrl: string) => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
@@ -43,6 +102,7 @@ const Dashboard = () => {
       'Checking image content...',
       'Running AI detection model...',
       'Generating confidence scores...',
+      'Saving to database...',
       'Finalizing results...'
     ];
 
@@ -60,7 +120,7 @@ const Dashboard = () => {
     }
 
     // Simulate AI decision making
-    const suspiciousKeywords = ['sex', 'xxx', 'abuse', 'inappropriate', 'explicit'];
+    const suspiciousKeywords = ['sex', 'xxx', 'abuse', 'inappropriate', 'explicit', 'violence'];
     const detectedContent: string[] = [];
     const confidence = Math.random() * 100;
     
@@ -71,37 +131,93 @@ const Dashboard = () => {
       }
     });
 
-    const result: AnalysisResult = {
-      url: inputUrl,
-      status: confidence > 75 && detectedContent.length > 0 ? 'blocked' : 
-              confidence > 40 ? 'waiting' : 'safe',
-      confidence: Math.round(confidence),
-      detectedContent,
-      timestamp: new Date().toLocaleString()
-    };
+    const siteType = inputUrl.includes('facebook.com') || inputUrl.includes('instagram.com') || 
+                    inputUrl.includes('twitter.com') || inputUrl.includes('tiktok.com') ? 'social_media' : 'website';
 
-    if (result.status === 'blocked') {
-      setBlockedSites(prev => [...prev, result]);
+    const status = confidence > 75 && detectedContent.length > 0 ? 'blocked' : 
+                   confidence > 40 ? 'waiting' : 'safe';
+
+    try {
+      // Log the analysis
+      await supabase.from('analysis_logs').insert({
+        url: inputUrl,
+        analysis_result: status,
+        confidence_score: Math.round(confidence),
+        detected_keywords: detectedContent,
+        processing_time_ms: steps.length * 800,
+        ai_model_version: 'v2.0'
+      });
+
+      // Store based on result
+      if (status === 'blocked') {
+        const { data, error } = await supabase.from('blocked_sites').insert({
+          url: inputUrl,
+          detected_content: detectedContent,
+          confidence_score: Math.round(confidence),
+          site_type: siteType,
+          analysis_details: { model: 'IRPS_AI_v2.0', timestamp: new Date().toISOString() }
+        }).select().single();
+
+        if (!error && data) {
+          const newBlockedSite = {
+            id: data.id,
+            url: inputUrl,
+            status: 'blocked' as const,
+            confidence: Math.round(confidence),
+            detectedContent,
+            timestamp: new Date().toLocaleString()
+          };
+          setBlockedSites(prev => [newBlockedSite, ...prev.slice(0, 9)]);
+        }
+
+        toast({
+          title: "⚠️ Threat Detected",
+          description: `URL blocked with ${Math.round(confidence)}% confidence`,
+          variant: "destructive",
+        });
+      } else if (status === 'waiting') {
+        const { data, error } = await supabase.from('waiting_list').insert({
+          url: inputUrl,
+          detected_content: detectedContent,
+          confidence_score: Math.round(confidence),
+          site_type: siteType,
+          analysis_details: { model: 'IRPS_AI_v2.0', timestamp: new Date().toISOString() }
+        }).select().single();
+
+        if (!error && data) {
+          const newWaitingItem = {
+            id: data.id,
+            url: inputUrl,
+            status: 'waiting' as const,
+            confidence: Math.round(confidence),
+            detectedContent,
+            timestamp: new Date().toLocaleString()
+          };
+          setWaitingList(prev => [newWaitingItem, ...prev.slice(0, 9)]);
+        }
+
+        toast({
+          title: "🔍 Manual Review Required",
+          description: "URL added to waiting list for manual verification",
+        });
+      } else {
+        toast({
+          title: "✅ Safe Content",
+          description: "No harmful content detected",
+        });
+      }
+    } catch (error) {
+      console.error('Error saving analysis result:', error);
       toast({
-        title: "⚠️ Threat Detected",
-        description: `URL blocked with ${result.confidence}% confidence`,
+        title: "Database Error",
+        description: "Analysis completed but failed to save to database",
         variant: "destructive",
-      });
-    } else if (result.status === 'waiting') {
-      setWaitingList(prev => [...prev, result]);
-      toast({
-        title: "🔍 Manual Review Required",
-        description: "URL added to waiting list for manual verification",
-      });
-    } else {
-      toast({
-        title: "✅ Safe Content",
-        description: "No harmful content detected",
       });
     }
 
     setIsAnalyzing(false);
     setAnalysisProgress(0);
+    setUrl('');
   };
 
   const handleAnalyze = () => {
@@ -117,7 +233,7 @@ const Dashboard = () => {
   };
 
   if (showAdmin) {
-    return <AdminPanel onBack={() => setShowAdmin(false)} />;
+    return <AdminPanel onBack={() => setShowAdmin(false)} onDataUpdate={() => { loadBlockedSites(); loadWaitingList(); }} />;
   }
 
   return (
@@ -229,13 +345,13 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="text-red-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
-                Blocked Profiles & Pages
+                Recently Blocked Profiles & Pages
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {blockedSites.map((site, index) => (
-                  <div key={index} className="bg-red-900/20 p-4 rounded-lg border border-red-500/20">
+                {blockedSites.map((site) => (
+                  <div key={site.id} className="bg-red-900/20 p-4 rounded-lg border border-red-500/20">
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
                         <p className="text-white font-medium break-all">{site.url}</p>
@@ -275,8 +391,8 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {waitingList.map((site, index) => (
-                  <div key={index} className="bg-yellow-900/20 p-4 rounded-lg border border-yellow-500/20">
+                {waitingList.map((site) => (
+                  <div key={site.id} className="bg-yellow-900/20 p-4 rounded-lg border border-yellow-500/20">
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <p className="text-white font-medium break-all">{site.url}</p>
