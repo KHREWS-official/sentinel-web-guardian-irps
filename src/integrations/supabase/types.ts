@@ -47,7 +47,9 @@ export type Database = {
           analysis_details: Json | null
           blocked_at: string
           confidence_score: number
+          content_category: string | null
           detected_content: string[] | null
+          detected_language: string | null
           id: string
           site_type: string
           url: string
@@ -56,7 +58,9 @@ export type Database = {
           analysis_details?: Json | null
           blocked_at?: string
           confidence_score: number
+          content_category?: string | null
           detected_content?: string[] | null
+          detected_language?: string | null
           id?: string
           site_type: string
           url: string
@@ -65,10 +69,36 @@ export type Database = {
           analysis_details?: Json | null
           blocked_at?: string
           confidence_score?: number
+          content_category?: string | null
           detected_content?: string[] | null
+          detected_language?: string | null
           id?: string
           site_type?: string
           url?: string
+        }
+        Relationships: []
+      }
+      daily_stats: {
+        Row: {
+          accounts_suspended: number | null
+          created_at: string
+          date: string
+          id: string
+          links_submitted: number | null
+        }
+        Insert: {
+          accounts_suspended?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          links_submitted?: number | null
+        }
+        Update: {
+          accounts_suspended?: number | null
+          created_at?: string
+          date?: string
+          id?: string
+          links_submitted?: number | null
         }
         Relationships: []
       }
@@ -99,12 +129,41 @@ export type Database = {
         }
         Relationships: []
       }
+      updates: {
+        Row: {
+          content: string
+          created_at: string
+          created_by_admin: boolean | null
+          id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by_admin?: boolean | null
+          id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by_admin?: boolean | null
+          id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       waiting_list: {
         Row: {
           added_at: string
           analysis_details: Json | null
           confidence_score: number
+          content_category: string | null
           detected_content: string[] | null
+          detected_language: string | null
           id: string
           reviewed: boolean | null
           site_type: string
@@ -114,7 +173,9 @@ export type Database = {
           added_at?: string
           analysis_details?: Json | null
           confidence_score: number
+          content_category?: string | null
           detected_content?: string[] | null
+          detected_language?: string | null
           id?: string
           reviewed?: boolean | null
           site_type: string
@@ -124,7 +185,9 @@ export type Database = {
           added_at?: string
           analysis_details?: Json | null
           confidence_score?: number
+          content_category?: string | null
           detected_content?: string[] | null
+          detected_language?: string | null
           id?: string
           reviewed?: boolean | null
           site_type?: string

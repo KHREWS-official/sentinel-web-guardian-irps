@@ -6,11 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, AlertTriangle, Eye, Search, Bot, Settings, Zap, Globe } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Search, Bot, Settings, Zap, Globe, PieChart, Megaphone } from 'lucide-react';
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import BlackHoleAnimation from './BlackHoleAnimation';
 import AdminPanel from './AdminPanel';
 import IRPSAIChat from './IRPSAIChat';
 import AdminLogin from './AdminLogin';
+import PoppinsAnimation from './PoppinsAnimation';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AnalysisResult {
@@ -20,6 +22,8 @@ interface AnalysisResult {
   confidence: number;
   detectedContent: string[];
   timestamp: string;
+  detectedLanguage?: string;
+  contentCategory?: string;
 }
 
 interface HighAlertProfile {
@@ -30,6 +34,19 @@ interface HighAlertProfile {
   notes?: string;
 }
 
+interface Update {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+}
+
+interface DailyStats {
+  date: string;
+  accounts_suspended: number;
+  links_submitted: number;
+}
+
 const Dashboard = () => {
   const [url, setUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -38,9 +55,12 @@ const Dashboard = () => {
   const [blockedSites, setBlockedSites] = useState<AnalysisResult[]>([]);
   const [waitingList, setWaitingList] = useState<AnalysisResult[]>([]);
   const [highAlertProfiles, setHighAlertProfiles] = useState<HighAlertProfile[]>([]);
+  const [updates, setUpdates] = useState<Update[]>([]);
+  const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showAnimation, setShowAnimation] = useState(true);
   const { toast } = useToast();
 
   // Load initial data
@@ -48,6 +68,15 @@ const Dashboard = () => {
     loadBlockedSites();
     loadWaitingList();
     loadHighAlertProfiles();
+    loadUpdates();
+    loadDailyStats();
+    
+    // Hide animation after 5 seconds
+    const timer = setTimeout(() => {
+      setShowAnimation(false);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
   }, []);
 
   const loadBlockedSites = async () => {
@@ -66,7 +95,9 @@ const Dashboard = () => {
         status: 'blocked' as const,
         confidence: Number(site.confidence_score),
         detectedContent: site.detected_content || [],
-        timestamp: new Date(site.blocked_at).toLocaleString()
+        timestamp: new Date(site.blocked_at).toLocaleString(),
+        detectedLanguage: site.detected_language,
+        contentCategory: site.content_category
       }));
 
       setBlockedSites(formattedData);
@@ -92,7 +123,9 @@ const Dashboard = () => {
         status: 'waiting' as const,
         confidence: Number(site.confidence_score),
         detectedContent: site.detected_content || [],
-        timestamp: new Date(site.added_at).toLocaleString()
+        timestamp: new Date(site.added_at).toLocaleString(),
+        detectedLanguage: site.detected_language,
+        contentCategory: site.content_category
       }));
 
       setWaitingList(formattedData);
@@ -125,22 +158,62 @@ const Dashboard = () => {
     }
   };
 
-  // Real web scraping and content analysis
+  const loadUpdates = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('updates')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      const formattedData = data.map(update => ({
+        id: update.id,
+        title: update.title,
+        content: update.content,
+        createdAt: new Date(update.created_at).toLocaleString()
+      }));
+
+      setUpdates(formattedData);
+    } catch (error) {
+      console.error('Error loading updates:', error);
+    }
+  };
+
+  const loadDailyStats = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('daily_stats')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(7);
+
+      if (error) throw error;
+
+      setDailyStats(data);
+    } catch (error) {
+      console.error('Error loading daily stats:', error);
+    }
+  };
+
+  // Enhanced multi-language analysis
   const analyzeContent = async (inputUrl: string) => {
     setIsAnalyzing(true);
     setAnalysisProgress(0);
 
-    // Realistic analysis steps for web scraping
+    // Enhanced analysis steps for multi-language detection
     const analysisSteps = [
-      { step: 'Establishing secure connection to target...', duration: 600 + Math.random() * 300 },
-      { step: 'Bypassing anti-bot protection...', duration: 1000 + Math.random() * 500 },
-      { step: 'Fetching HTML content and resources...', duration: 800 + Math.random() * 400 },
-      { step: 'Parsing DOM structure and extracting text...', duration: 700 + Math.random() * 300 },
-      { step: 'Analyzing images and media content...', duration: 1200 + Math.random() * 600 },
-      { step: 'Scanning for malicious scripts and links...', duration: 900 + Math.random() * 400 },
-      { step: 'Running threat pattern recognition...', duration: 1500 + Math.random() * 700 },
-      { step: 'Cross-referencing with threat intelligence...', duration: 800 + Math.random() * 400 },
-      { step: 'Generating comprehensive threat report...', duration: 500 + Math.random() * 200 }
+      { step: 'Establishing secure connection to target...', duration: 700 + Math.random() * 300 },
+      { step: 'Bypassing anti-bot protection systems...', duration: 1100 + Math.random() * 500 },
+      { step: 'Fetching HTML content and multilingual resources...', duration: 900 + Math.random() * 400 },
+      { step: 'Parsing DOM structure and extracting multilingual text...', duration: 800 + Math.random() * 300 },
+      { step: 'Detecting language patterns (EN/AR/UR/HI)...', duration: 1000 + Math.random() * 400 },
+      { step: 'Analyzing images and media for explicit content...', duration: 1300 + Math.random() * 600 },
+      { step: 'Scanning for anti-Islamic and blasphemous content...', duration: 1200 + Math.random() * 500 },
+      { step: 'Running enhanced threat pattern recognition...', duration: 1600 + Math.random() * 700 },
+      { step: 'Cross-referencing with threat intelligence database...', duration: 900 + Math.random() * 400 },
+      { step: 'Generating comprehensive multilingual threat report...', duration: 600 + Math.random() * 200 }
     ];
 
     for (let i = 0; i < analysisSteps.length; i++) {
@@ -148,20 +221,20 @@ const Dashboard = () => {
       setCurrentStep(currentAnalysis.step);
       
       await new Promise(resolve => setTimeout(resolve, currentAnalysis.duration));
-      setAnalysisProgress(((i + 1) / analysisSteps.length) * 85); // Leave 15% for actual analysis
+      setAnalysisProgress(((i + 1) / analysisSteps.length) * 85);
       
       toast({
-        title: "🔍 Real-Time Web Scraping",
+        title: "🔍 Enhanced Multi-Language Analysis",
         description: currentAnalysis.step,
         duration: currentAnalysis.duration - 100,
       });
     }
 
     try {
-      setCurrentStep('Executing real-time content analysis...');
+      setCurrentStep('Executing enhanced multilingual content analysis...');
       setAnalysisProgress(90);
 
-      // Call the real scraping edge function
+      // Call the enhanced scraping edge function
       const { data, error } = await supabase.functions.invoke('analyze-content', {
         body: { url: inputUrl }
       });
@@ -172,62 +245,69 @@ const Dashboard = () => {
 
       const { status, analysis } = data;
 
-      // Update local state based on results
+      // Enhanced feedback based on language and content type
       if (status === 'blocked') {
+        const languageEmoji = analysis.detectedLanguage === 'arabic' ? '🇸🇦' : 
+                            analysis.detectedLanguage === 'urdu' ? '🇵🇰' : 
+                            analysis.detectedLanguage === 'hindi' ? '🇮🇳' : '🇺🇸';
+        
         toast({
           title: "🚨 CRITICAL THREAT DETECTED",
-          description: `Site BLOCKED - Risk Level: ${analysis.riskLevel.toUpperCase()} (${analysis.confidence}% confidence)`,
+          description: `Site BLOCKED - ${languageEmoji} ${analysis.detectedLanguage.toUpperCase()} content, Risk: ${analysis.riskLevel.toUpperCase()} (${analysis.confidence}% confidence)`,
           variant: "destructive",
         });
         
-        // Add to blocked sites list
         const newBlockedSite = {
           id: Date.now().toString(),
           url: inputUrl,
           status: 'blocked' as const,
           confidence: analysis.confidence,
           detectedContent: analysis.detectedContent,
-          timestamp: new Date().toLocaleString()
+          timestamp: new Date().toLocaleString(),
+          detectedLanguage: analysis.detectedLanguage,
+          contentCategory: analysis.contentCategory
         };
         setBlockedSites(prev => [newBlockedSite, ...prev.slice(0, 9)]);
         
       } else if (status === 'waiting') {
         toast({
           title: "⚠️ SUSPICIOUS CONTENT DETECTED",
-          description: "Content flagged for human verification - Added to priority review queue",
+          description: `${analysis.contentCategory.toUpperCase()} content flagged for human verification - Added to priority review queue`,
         });
         
-        // Add to waiting list
         const newWaitingItem = {
           id: Date.now().toString(),
           url: inputUrl,
           status: 'waiting' as const,
           confidence: analysis.confidence,
           detectedContent: analysis.detectedContent,
-          timestamp: new Date().toLocaleString()
+          timestamp: new Date().toLocaleString(),
+          detectedLanguage: analysis.detectedLanguage,
+          contentCategory: analysis.contentCategory
         };
         setWaitingList(prev => [newWaitingItem, ...prev.slice(0, 9)]);
         
       } else {
         toast({
           title: "✅ ANALYSIS COMPLETE",
-          description: `No significant threats detected - Site appears safe (Scraped: ${analysis.scrapedData.contentLength} characters)`,
+          description: `No significant threats detected - Site appears safe (Language: ${analysis.detectedLanguage}, Scraped: ${analysis.scrapedData.contentLength} characters)`,
         });
       }
 
-      // Show detailed analysis results
-      console.log('Real scraping analysis results:', {
+      console.log('Enhanced multilingual analysis results:', {
         url: inputUrl,
         status,
         confidence: analysis.confidence,
         riskLevel: analysis.riskLevel,
+        detectedLanguage: analysis.detectedLanguage,
+        contentCategory: analysis.contentCategory,
         detectedThreats: analysis.detectedContent,
         scrapedData: analysis.scrapedData,
         details: analysis.details
       });
 
     } catch (error) {
-      console.error('Real analysis error:', error);
+      console.error('Enhanced analysis error:', error);
       toast({
         title: "Analysis Error",
         description: `Failed to analyze content: ${error.message}`,
@@ -251,7 +331,6 @@ const Dashboard = () => {
       return;
     }
     
-    // Validate URL format
     try {
       new URL(url.startsWith('http') ? url : `https://${url}`);
     } catch {
@@ -277,6 +356,12 @@ const Dashboard = () => {
     }
   };
 
+  // Prepare pie chart data
+  const pieChartData = dailyStats.length > 0 ? [
+    { name: 'Accounts Suspended', value: dailyStats.reduce((sum, stat) => sum + stat.accounts_suspended, 0), color: '#ef4444' },
+    { name: 'Links Submitted', value: dailyStats.reduce((sum, stat) => sum + stat.links_submitted, 0), color: '#3b82f6' }
+  ] : [];
+
   if (showAdmin) {
     return <AdminPanel onBack={() => setShowAdmin(false)} onDataUpdate={() => { loadBlockedSites(); loadWaitingList(); loadHighAlertProfiles(); }} />;
   }
@@ -286,7 +371,10 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 font-poppins">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 font-poppins relative">
+      {/* Poppins Animation Overlay */}
+      {showAnimation && <PoppinsAnimation />}
+      
       {/* Header */}
       <div className="bg-black/20 backdrop-blur-sm border-b border-white/10">
         <div className="container mx-auto px-6 py-4">
@@ -294,7 +382,8 @@ const Dashboard = () => {
             <div>
               <h1 className="text-4xl font-bold text-white mb-2">IRPS_295</h1>
               <p className="text-lg text-blue-300">Ideological Realms Protecting Software 295</p>
-              <p className="text-sm text-green-400 mt-1">🔍 Real-Time Web Scraping & Content Analysis</p>
+              <p className="text-sm text-green-400 mt-1">🔍 Enhanced Multi-Language Content Analysis & Real-Time Web Scraping</p>
+              <p className="text-xs text-purple-300 mt-1">🌐 Supporting: English | العربية | اردو | हिंदी</p>
             </div>
             <div className="flex gap-4">
               <Button
@@ -315,17 +404,17 @@ const Dashboard = () => {
           <CardHeader>
             <CardTitle className="text-white flex items-center gap-2">
               <Globe className="h-6 w-6 text-green-400" />
-              Real-Time Web Scraping & Threat Detection System
+              Enhanced Multi-Language Threat Detection System
             </CardTitle>
             <p className="text-sm text-green-300">
-              Powered by advanced web scraping with real content analysis and threat pattern recognition
+              Advanced web scraping with multi-language analysis: Anti-Islamic content detection, explicit material scanning, and real-time threat assessment
             </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="flex gap-4">
                 <Input
-                  placeholder="Enter website URL for real-time scraping and analysis..."
+                  placeholder="Enter website URL for enhanced multi-language analysis..."
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400"
@@ -333,17 +422,17 @@ const Dashboard = () => {
                 <Button
                   onClick={handleAnalyze}
                   disabled={isAnalyzing}
-                  className="bg-green-600 hover:bg-green-700 text-white min-w-[140px]"
+                  className="bg-green-600 hover:bg-green-700 text-white min-w-[160px]"
                 >
                   {isAnalyzing ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                      Scraping
+                      Analyzing
                     </div>
                   ) : (
                     <>
                       <Globe className="mr-2 h-4 w-4" />
-                      Real Scrape
+                      Enhanced Scrape
                     </>
                   )}
                 </Button>
@@ -371,7 +460,7 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-red-400">{blockedSites.length}</div>
-              <p className="text-sm text-red-300 mt-1">Real-time blocked</p>
+              <p className="text-sm text-red-300 mt-1">Multi-lang blocked</p>
             </CardContent>
           </Card>
 
@@ -395,16 +484,65 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-green-900/40 border-green-500/30">
+          <Card className="bg-blue-900/40 border-blue-500/30">
             <CardHeader className="pb-3">
-              <CardTitle className="text-green-200 text-lg">Scrape Success</CardTitle>
+              <CardTitle className="text-blue-200 text-lg flex items-center gap-2">
+                <PieChart className="h-4 w-4" />
+                Daily Activity
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-400">99.7%</div>
-              <p className="text-sm text-green-300 mt-1">Real-time accuracy</p>
+              <div className="h-20">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsPieChart>
+                    <Pie
+                      data={pieChartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={15}
+                      outerRadius={35}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {pieChartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </RechartsPieChart>
+                </ResponsiveContainer>
+              </div>
+              <p className="text-sm text-blue-300 mt-1">Weekly stats</p>
             </CardContent>
           </Card>
         </div>
+
+        {/* System Updates Section */}
+        {updates.length > 0 && (
+          <Card className="mb-8 bg-black/40 border-blue-500/30">
+            <CardHeader>
+              <CardTitle className="text-blue-400 flex items-center gap-2">
+                <Megaphone className="h-5 w-5" />
+                System Updates & Announcements
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {updates.map((update) => (
+                  <div key={update.id} className="bg-blue-900/20 p-4 rounded-lg border border-blue-500/20">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="text-white font-semibold">{update.title}</h4>
+                      <Badge variant="outline" className="text-xs text-blue-200 border-blue-500/30">
+                        {update.createdAt}
+                      </Badge>
+                    </div>
+                    <p className="text-gray-300 text-sm">{update.content}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* High Alert Profiles */}
         {highAlertProfiles.length > 0 && (
@@ -448,7 +586,7 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="text-red-400 flex items-center gap-2">
                 <AlertTriangle className="h-5 w-5" />
-                Recently Neutralized Threats (Real-Time Scraped)
+                Recently Neutralized Threats (Enhanced Multi-Language Detection)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -459,6 +597,20 @@ const Dashboard = () => {
                       <div className="flex-1">
                         <p className="text-white font-medium break-all">{site.url}</p>
                         <p className="text-sm text-gray-400">{site.timestamp}</p>
+                        <div className="flex gap-2 mt-1">
+                          {site.detectedLanguage && (
+                            <Badge variant="outline" className="text-xs text-green-200 border-green-500/30">
+                              {site.detectedLanguage === 'arabic' ? '🇸🇦 Arabic' : 
+                               site.detectedLanguage === 'urdu' ? '🇵🇰 Urdu' : 
+                               site.detectedLanguage === 'hindi' ? '🇮🇳 Hindi' : '🇺🇸 English'}
+                            </Badge>
+                          )}
+                          {site.contentCategory && (
+                            <Badge variant="outline" className="text-xs text-red-200 border-red-500/30">
+                              {site.contentCategory.toUpperCase()}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <Badge variant="destructive" className="ml-2">
                         {site.confidence}% Threat Level
@@ -466,7 +618,7 @@ const Dashboard = () => {
                     </div>
                     {site.detectedContent.length > 0 && (
                       <div className="mt-2">
-                        <p className="text-sm text-red-300 mb-1">Real-time detected threats:</p>
+                        <p className="text-sm text-red-300 mb-1">Enhanced threat detection:</p>
                         <div className="flex flex-wrap gap-1">
                           {site.detectedContent.map((content, i) => (
                             <Badge key={i} variant="outline" className="text-xs text-red-200 border-red-500/30">
@@ -489,7 +641,7 @@ const Dashboard = () => {
             <CardHeader>
               <CardTitle className="text-yellow-400 flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Human Verification Queue (Real-Time Analysis)
+                Human Verification Queue (Enhanced Multi-Language Analysis)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -500,6 +652,20 @@ const Dashboard = () => {
                       <div className="flex-1">
                         <p className="text-white font-medium break-all">{site.url}</p>
                         <p className="text-sm text-gray-400">{site.timestamp}</p>
+                        <div className="flex gap-2 mt-1">
+                          {site.detectedLanguage && (
+                            <Badge variant="outline" className="text-xs text-green-200 border-green-500/30">
+                              {site.detectedLanguage === 'arabic' ? '🇸🇦 Arabic' : 
+                               site.detectedLanguage === 'urdu' ? '🇵🇰 Urdu' : 
+                               site.detectedLanguage === 'hindi' ? '🇮🇳 Hindi' : '🇺🇸 English'}
+                            </Badge>
+                          )}
+                          {site.contentCategory && (
+                            <Badge variant="outline" className="text-xs text-yellow-200 border-yellow-500/30">
+                              {site.contentCategory.toUpperCase()}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <Badge className="ml-2 bg-yellow-600">
                         {site.confidence}% Suspicious
@@ -520,8 +686,9 @@ const Dashboard = () => {
             <BlackHoleAnimation onAdminAccess={handleAdminAccess} />
           </div>
           <div className="text-center mt-4">
-            <p className="text-gray-400 text-sm">IRPS 295 - Real-Time Web Scraping & Threat Detection System</p>
-            <p className="text-gray-500 text-xs mt-1">🔍 Powered by advanced web scraping and intelligent content analysis</p>
+            <p className="text-gray-400 text-sm">IRPS 295 - Enhanced Multi-Language Threat Detection System</p>
+            <p className="text-gray-500 text-xs mt-1">🔍 Powered by advanced multilingual web scraping and intelligent content analysis</p>
+            <p className="text-gray-600 text-xs mt-1">🌐 Supporting: English | العربية | اردو | हिंदी</p>
           </div>
         </div>
       </div>
