@@ -78,6 +78,36 @@ export type Database = {
         }
         Relationships: []
       }
+      contact_messages: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          message: string
+          name: string
+          read_status: boolean | null
+          subject: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          message: string
+          name: string
+          read_status?: boolean | null
+          subject: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string
+          name?: string
+          read_status?: boolean | null
+          subject?: string
+        }
+        Relationships: []
+      }
       daily_stats: {
         Row: {
           accounts_suspended: number | null
@@ -129,12 +159,41 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_content: {
+        Row: {
+          content: string
+          description: string
+          id: string
+          image_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       updates: {
         Row: {
           content: string
           created_at: string
           created_by_admin: boolean | null
           id: string
+          image_url: string | null
+          published: boolean | null
           title: string
           updated_at: string
         }
@@ -143,6 +202,8 @@ export type Database = {
           created_at?: string
           created_by_admin?: boolean | null
           id?: string
+          image_url?: string | null
+          published?: boolean | null
           title: string
           updated_at?: string
         }
@@ -151,6 +212,8 @@ export type Database = {
           created_at?: string
           created_by_admin?: boolean | null
           id?: string
+          image_url?: string | null
+          published?: boolean | null
           title?: string
           updated_at?: string
         }

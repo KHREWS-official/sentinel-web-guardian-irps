@@ -13,6 +13,7 @@ import AdminPanel from './AdminPanel';
 import IRPSAIChat from './IRPSAIChat';
 import AdminLogin from './AdminLogin';
 import PoppinsAnimation from './PoppinsAnimation';
+import Header from './Header';
 import { supabase } from '@/integrations/supabase/client';
 
 interface AnalysisResult {
@@ -163,6 +164,7 @@ const Dashboard = () => {
       const { data, error } = await supabase
         .from('updates')
         .select('*')
+        .eq('published', true)
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -376,27 +378,7 @@ const Dashboard = () => {
       {showAnimation && <PoppinsAnimation />}
       
       {/* Header */}
-      <div className="bg-black/20 backdrop-blur-sm border-b border-white/10">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-4xl font-bold text-white mb-2">IRPS_295</h1>
-              <p className="text-lg text-blue-300">Ideological Realms Protecting Software 295</p>
-              <p className="text-sm text-green-400 mt-1">🔍 Enhanced Multi-Language Content Analysis & Real-Time Web Scraping</p>
-              <p className="text-xs text-purple-300 mt-1">🌐 Supporting: English | العربية | اردو | हिंदी</p>
-            </div>
-            <div className="flex gap-4">
-              <Button
-                onClick={() => setShowChat(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <Bot className="mr-2 h-4 w-4" />
-                IRPS AI Assistant
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <Header />
 
       <div className="container mx-auto px-6 py-8">
         {/* Analysis Section */}
