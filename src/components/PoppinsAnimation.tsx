@@ -44,25 +44,27 @@ const PoppinsAnimation = () => {
         </div>
       </div>
       
-      <style jsx>{`
-        @keyframes spin-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        
-        @keyframes spin-reverse {
-          from { transform: rotate(360deg); }
-          to { transform: rotate(0deg); }
-        }
-        
-        .animate-spin-slow {
-          animation: spin-slow 8s linear infinite;
-        }
-        
-        .animate-spin-reverse {
-          animation: spin-reverse 6s linear infinite;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          @keyframes spin-slow {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+          
+          @keyframes spin-reverse {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+          }
+          
+          .animate-spin-slow {
+            animation: spin-slow 8s linear infinite;
+          }
+          
+          .animate-spin-reverse {
+            animation: spin-reverse 6s linear infinite;
+          }
+        `
+      }} />
     </div>
   );
 };
